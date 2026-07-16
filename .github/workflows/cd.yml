@@ -17,7 +17,7 @@ jobs:
 
     steps:
 
-      # Download artifact created by CI workflow
+      # Download artifact from CI workflow run
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -41,7 +41,7 @@ jobs:
           ubuntu@${{ secrets.EC2_HOST }}:/opt/flask-app/
 
 
-      # Deploy application
+      # Deploy Flask application
       - name: Deploy Flask app
         run: |
           ssh -o StrictHostKeyChecking=no \
@@ -51,7 +51,11 @@ jobs:
 
             unzip -o app.zip
 
-            pip3 install -r requirements.txt
+            python3 -m venv venv
+
+            source venv/bin/activate
+
+            pip install -r requirements.txt
 
             pkill -f "python3 app.py" || true
 
