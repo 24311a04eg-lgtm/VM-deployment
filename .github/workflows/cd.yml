@@ -7,6 +7,7 @@ on:
       - completed
 
 jobs:
+
   deploy:
 
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -23,21 +24,24 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
+
       # Setup SSH
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
+
       ####################################################
-      # Deploy VM1
+      # VM1 Deployment
       ####################################################
 
-      - name: Copy app.zip to VM1
+      - name: Copy artifact to VM1
         run: |
           scp -o StrictHostKeyChecking=no \
           app.zip \
           ${{ secrets.EC2_USER }}@${{ secrets.VM1_HOST }}:/opt/flask-app/
+
 
       - name: Deploy VM1
         run: |
@@ -48,14 +52,14 @@ jobs:
 
             cd /opt/flask-app
 
+            sudo apt update
+            sudo apt install -y python3.14-venv python3-pip unzip
+
             unzip -o app.zip
 
             if [ ! -d "venv" ]; then
-              echo "Creating virtual environment..."
               python3 -m venv venv
             fi
-
-            test -f venv/bin/activate
 
             source venv/bin/activate
 
@@ -69,29 +73,34 @@ jobs:
 
           EOF
 
+
       - name: Health Check VM1
         run: |
           for i in {1..12}; do
             if curl -f http://${{ secrets.VM1_HOST }}:5000/health; then
-              echo "VM1 Healthy"
+              echo "VM1 healthy"
               exit 0
             fi
+
             echo "Waiting for VM1..."
             sleep 5
           done
 
-          echo "VM1 Health Check Failed"
+          echo "VM1 failed health check"
           exit 1
 
+
+
       ####################################################
-      # Deploy VM2
+      # VM2 Deployment
       ####################################################
 
-      - name: Copy app.zip to VM2
+      - name: Copy artifact to VM2
         run: |
           scp -o StrictHostKeyChecking=no \
           app.zip \
           ${{ secrets.EC2_USER }}@${{ secrets.VM2_HOST }}:/opt/flask-app/
+
 
       - name: Deploy VM2
         run: |
@@ -102,14 +111,14 @@ jobs:
 
             cd /opt/flask-app
 
+            sudo apt update
+            sudo apt install -y python3.14-venv python3-pip unzip
+
             unzip -o app.zip
 
             if [ ! -d "venv" ]; then
-              echo "Creating virtual environment..."
               python3 -m venv venv
             fi
-
-            test -f venv/bin/activate
 
             source venv/bin/activate
 
@@ -123,16 +132,18 @@ jobs:
 
           EOF
 
+
       - name: Health Check VM2
         run: |
           for i in {1..12}; do
             if curl -f http://${{ secrets.VM2_HOST }}:5000/health; then
-              echo "VM2 Healthy"
+              echo "VM2 healthy"
               exit 0
             fi
+
             echo "Waiting for VM2..."
             sleep 5
           done
 
-          echo "VM2 Health Check Failed"
+          echo "VM2 failed health check"
           exit 1
