@@ -44,28 +44,44 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
           ${{ secrets.EC2_USER }}@${{ secrets.VM1_HOST }} << 'EOF'
 
+            set -e
+
             cd /opt/flask-app
 
             unzip -o app.zip
 
             if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
               python3 -m venv venv
             fi
 
+            test -f venv/bin/activate
+
             source venv/bin/activate
+
+            python -m pip install --upgrade pip
 
             pip install -r requirements.txt
 
-            pkill -f "python3 app.py" || true
+            pkill -f "python app.py" || true
 
-            nohup python3 app.py > app.log 2>&1 &
+            nohup python app.py > app.log 2>&1 &
 
           EOF
 
       - name: Health Check VM1
         run: |
-          sleep 5
-          curl http://${{ secrets.VM1_HOST }}:5000/health
+          for i in {1..12}; do
+            if curl -f http://${{ secrets.VM1_HOST }}:5000/health; then
+              echo "VM1 Healthy"
+              exit 0
+            fi
+            echo "Waiting for VM1..."
+            sleep 5
+          done
+
+          echo "VM1 Health Check Failed"
+          exit 1
 
       ####################################################
       # Deploy VM2
@@ -82,25 +98,41 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
           ${{ secrets.EC2_USER }}@${{ secrets.VM2_HOST }} << 'EOF'
 
+            set -e
+
             cd /opt/flask-app
 
             unzip -o app.zip
 
             if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
               python3 -m venv venv
             fi
 
+            test -f venv/bin/activate
+
             source venv/bin/activate
+
+            python -m pip install --upgrade pip
 
             pip install -r requirements.txt
 
-            pkill -f "python3 app.py" || true
+            pkill -f "python app.py" || true
 
-            nohup python3 app.py > app.log 2>&1 &
+            nohup python app.py > app.log 2>&1 &
 
           EOF
 
       - name: Health Check VM2
         run: |
-          sleep 5
-          curl http://${{ secrets.VM2_HOST }}:5000/health
+          for i in {1..12}; do
+            if curl -f http://${{ secrets.VM2_HOST }}:5000/health; then
+              echo "VM2 Healthy"
+              exit 0
+            fi
+            echo "Waiting for VM2..."
+            sleep 5
+          done
+
+          echo "VM2 Health Check Failed"
+          exit 1
