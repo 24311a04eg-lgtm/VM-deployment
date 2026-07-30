@@ -1,6 +1,6 @@
 # Flask CI/CD Pipeline
 
-A simple project demonstrating a complete CI/CD workflow using GitHub Actions and AWS EC2.
+A simple project demonstrating a complete CI/CD workflow using GitHub Actions and AWS EC2 with deployable patterns 
 
 ## Project Structure
 
